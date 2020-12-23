@@ -1,8 +1,18 @@
-const express = require('express')
+const express = require('express');
+const fs = require("fs");
 const app = express();
 const port = process.env.PORT || 3000;
 app.get('/', (req, res) => {
     res.json("Sao cung dc ma")
+})
+app.get('/monius', (req, res) => {
+    // let listJson = require("./MusicList.json")
+    // res.send(listJson);
+    fs.readFile("./MusicList.json", (err, data) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.write(data);
+        return res.end();
+    })
 })
 app.listen(port, () => {
     console.log("App is running!!!");
@@ -36,8 +46,48 @@ bot.on('message', async msg => {
     } else if (session[0] === 'a') {
         musicList.push(session[1]);
         msg.reply("Đã thêm, bây giờ danh sách có " + musicList.length + " bản nhạc");
-    } else if (session[0] === 'hello') {
-        msg.reply("Con Card!");
+    } else if (session[0] === 'l') {
+        fs.readFile("./MusicList.json", async (err, data) => {
+            const listUrl = [];
+            const listName = [];
+
+            var list = JSON.parse((data.toString()));
+            for (var key in list) {
+                if (session[1] == key) {
+                    // msg.reply("tìm thấy ");
+                    // console.log(list[key]);
+                    for (var keyin in list[key]) {
+                        listUrl.push(keyin);
+                        listName.push(list[key][keyin])
+                        // console.log(keyin);
+                        // console.log(list[key][keyin]);
+                    }
+                }
+            }
+
+            if (listUrl.length == 0) {
+                msg.reply("không tìm thấy danh sách!! ~d (display) để hiển thị tên các danh sách hiện có!")
+            } else {
+                let textReply = "\nCác bài hát có trong danh sách hiện tại:\n";
+                for (let i = 0; i < listName.length; i++) {
+                    textReply += (i + 1) + ". " + listName[i] + "\n";
+                }
+                msg.reply(textReply);
+
+                musicList.length = 0;
+                for (let i = 0; i < listUrl.length; i++) { musicList.push(listUrl[i]); }
+                if (msg.member.voice.channel) {
+                    const connection = await msg.member.voice.channel.join();
+                    const ytdl = require('ytdl-core');
+                    recPlay(ytdl, connection, musicList, 0)
+                } else { msg.reply('You need to join a voice channel first!'); }
+                // console.log(listUrl);
+                // console.log(listName);
+            }
+            // console.log(list);
+            // console.log(list[session[1]]);
+        })
+
     }
     console.log(session, session.length);
     console.log('ms ls', musicList);
